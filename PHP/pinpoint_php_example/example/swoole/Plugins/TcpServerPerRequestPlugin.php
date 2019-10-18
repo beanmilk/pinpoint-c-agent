@@ -1,14 +1,12 @@
 <?php
 
 
-namespace example\workerman\Plugins;
+namespace example\swoole\Plugins;
 
-use Workerman;
-use example\workerman\Plugins\Candy;
-use Workerman\Connection\TcpConnection;
+use example\swoole\Plugins\Candy;
 require_once "PluginsDefines.php";
 
-///@hook:example\workerman\HandleRequest::onMessage
+///@hook:example\swoole\HandleRequest::onReceiveTcp
 class TcpServerPerRequestPlugin extends Candy
 {
     public static $_intance = null;
@@ -38,13 +36,13 @@ class TcpServerPerRequestPlugin extends Candy
 
     public function onBefore()
     {
-        $connection = $this->args[0];
-        assert($connection instanceof Workerman\Connection\TcpConnection);
-        var_dump($connection->getRemoteIp());
+        $serv = $this->args[0];
+        $fd = $this->args[1];
+        $remote_ip = $serv->getClientInfo($fd)["remote_ip"];
 
         pinpoint_add_clue("uri","tcp connection");
-        pinpoint_add_clue("client",$connection->getRemoteIp());
-        pinpoint_add_clue("server",sprintf("%s:%d", $connection->getLocalIp(),$connection->getLocalPort()));
+        pinpoint_add_clue("client",$remote_ip);
+        pinpoint_add_clue("server",sprintf("%s:%d", $serv->host, $serv->port));
         pinpoint_add_clue("stp",PHP);
         pinpoint_add_clue("name","TCP Request");
 
@@ -95,7 +93,7 @@ class TcpServerPerRequestPlugin extends Candy
 
     public function generateTransactionID()
     {
-        return  pinpoint_app_id().'^'.strval(pinpoint_start_time()).'^'.strval(pinpoint_unique_id());
+        return  $this->app_id.'^'.strval(pinpoint_start_time()).'^'.strval(pinpoint_unique_id());
     }
 
 

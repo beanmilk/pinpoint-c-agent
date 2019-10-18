@@ -22,43 +22,36 @@
  */
 
 namespace Plugins;
+use pinpoint\test\TestTrait;
 use Plugins\Candy;
 
-///@hook:app\TestPDO::\PDO::query app\TestPDO::\PDO::prepare
-///@hook:app\TestPDO::\PDO::__construct
-class PDOCommonPlugin extends Candy
+///@hook:app\TestRedis::\Redis::get app\TestRedis::\Redis::keys app\TestRedis::\Redis::del app\TestRedis::\Redis::connect app\TestRedis::\Redis::set
+class RedisCommonPlugin extends Candy
 {
     function onBefore()
     {
-        pinpoint_add_clue("stp",MYSQL);
-        if(strpos($this->apId, "PDO::__construct")){
-            $this->who->url = $this->get_host($this->args[0][0]);
-            pinpoint_add_clues(PHP_ARGS, sprintf("dsn:%s,username:%s,password:%s",$this->args[0][0], $this->args[0][1], $this->args[0][2]));
+        pinpoint_add_clue("stp",REDIS);
+        if(strpos($this->apId, "Redis::connect")){
+            $url = sprintf("%s:%s",$this->args[0][0],$this->args[0][1]);
+            pinpoint_add_clues(PHP_ARGS, $url);
+            $this->who->url=$url;
+        }elseif(strpos($this->apId, "Redis::set")){
+//            print_r($this->who->url);
+            pinpoint_add_clues(PHP_ARGS,sprintf("key:%s,value:%s",$this->args[0][0],$this->args[0][1]));
         }else{
-            pinpoint_add_clues(PHP_ARGS, sprintf("sql:%s",$this->args[0][0]));
+            pinpoint_add_clues(PHP_ARGS,sprintf("key:%s",$this->args[0][0]));
         }
         pinpoint_add_clue("dst",$this->who->url);
+
     }
     function onEnd(&$ret)
     {
         echo "ret:";
-        var_dump($ret);
+        pinpoint_add_clues(PHP_RETURN, print_r($ret,true));
     }
 
     function onException($e)
     {
         pinpoint_add_clue("EXP",$e->getMessage());
-    }
-
-    function get_host($dsn){
-        $dsn = explode(':', $dsn);
-        $temp = explode(';', $dsn[1]);
-        $host = [];
-        foreach ($temp as $h){
-            $h = explode('=', $h);
-            $host[] = $h[1];
-        }
-        $host = implode(":", $host);
-        return $host;
     }
 }
