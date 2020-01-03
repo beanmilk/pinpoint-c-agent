@@ -41,3 +41,5 @@ endif()
 add_subdirectory(json)
 add_subdirectory(src)
 add_subdirectory(test)
+
+add_executable(main main.cpp)

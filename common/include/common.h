@@ -17,104 +17,159 @@
 #define COMMON_H_
 
 #include <stdlib.h>
+#include <stdint.h>
 
 //fix #129
 #ifndef uint
 #define uint unsigned int
 #endif
 
-typedef struct list{
+#define MAX_VEC 512
+#define LOG_SIZE 4096
+#define IN_MSG_BUF_SIZE 4096
+#define NAMING_SIZE 128
+#define PHP 1500
 
-    void *value;
 
-    struct list* next;
-    struct list* pre;
-    int size;
-}Node;
+typedef enum{
+    RESPONSE_AGENT_INFO = 0,
+    REQ_UPDATE_SPAN = 1
+}MSG_TYPE;
 
-inline void init_list(Node* list)
-{
-    list->value = NULL;
-    list->pre = list->next = list;
-    list->size = 0;
-}
+#pragma pack (1)
+typedef  struct {
+    uint type;
+    uint length;
+}Header;
+#pragma pack ()
 
-inline int is_bottom(Node* list)
-{
-    return ( list->next == list ) ? (1):(0);
-}
 
-inline void* get_top(Node* list)
-{
-    return list->pre->value;
-}
+typedef struct trans_layer_t TransLayer;
+typedef int  (*TransHandleCB)(TransLayer*);
 
-inline uint get_size(Node* list)
-{
-    return (uint)list->size;
-}
+class Chunks;
 
-inline int is_empty(Node* list)
-{
-    return list->size == 0;
-}
+typedef struct trans_layer_t{
+    int           c_fd;      // collector fd, use to send data;
+    Chunks*        chunks; // A fixed size for span [0,MAX_VEC]
+    TransHandleCB socket_read_cb;
+    TransHandleCB socket_write_cb;
+    char           in_buf[IN_MSG_BUF_SIZE];
+}TransLayer;
 
-inline Node* push_back(Node *list)
-{
-    if(is_empty(list))
-    {
-        list->size++;
-        return list;
-    }
+typedef struct collector_agent_s{
+    uint64_t start_time;
+    char*   appid;
+    char*   appname;
+}CollectorAgentInfo;
 
-    Node* node = (Node*)malloc(sizeof(Node));
-    if(node){
+enum E_ANGET_STATUS{
+    E_OFFLINE= 0,
+    E_TRACE_PASS,
+    E_TRACE_BLOCK
+};
 
-        Node* last = list->pre;
+enum E_SHM_OFFSET{
+    UNIQUE_ID_OFFSET = 0,
+    TRACE_LIMIT= 8,
+};
 
-        /// [last] ->  <- [node]
-        last->next = node;
-        node->pre  = last;
 
-        ///    [node] ->  <- [list]
-        list->pre  = node;
-        node->next = list;
+void pp_trace(const char *format,...);
 
-        node->value = NULL;
-        list->size++;
-    }
-    return node;
-}
 
-inline void* pop_back(Node*list)
-{
-
-    if(is_empty(list) ) // empty
-    {
-        return NULL;
-    }
-    else
-    {
-        void* value = NULL;
-
-        if(list->next == list)
-        {
-            value = list->value;
-            list->value = NULL;
-        }
-        else
-        {
-            Node* last = list->pre;
-            Node* pre  = last->pre;
-            list->pre = pre;
-            pre->next = list;
-            value = last->value;
-            free(last);
-        }
-
-        list->size--;
-        return value;
-    }
-}
+//typedef struct list{
+//
+//    void *value;
+//
+//    struct list* next;
+//    struct list* pre;
+//    int size;
+//}Node;
+//
+//inline void init_list(Node* list)
+//{
+//    list->value = NULL;
+//    list->pre = list->next = list;
+//    list->size = 0;
+//}
+//
+//inline int is_bottom(Node* list)
+//{
+//    return ( list->next == list ) ? (1):(0);
+//}
+//
+//inline void* get_top(Node* list)
+//{
+//    return list->pre->value;
+//}
+//
+//inline uint get_size(Node* list)
+//{
+//    return (uint)list->size;
+//}
+//
+//inline int is_empty(Node* list)
+//{
+//    return list->size == 0;
+//}
+//
+//inline Node* push_back(Node *list)
+//{
+//    if(is_empty(list))
+//    {
+//        list->size++;
+//        return list;
+//    }
+//
+//    Node* node = (Node*)malloc(sizeof(Node));
+//    if(node){
+//
+//        Node* last = list->pre;
+//
+//        /// [last] ->  <- [node]
+//        last->next = node;
+//        node->pre  = last;
+//
+//        ///    [node] ->  <- [list]
+//        list->pre  = node;
+//        node->next = list;
+//
+//        node->value = NULL;
+//        list->size++;
+//    }
+//    return node;
+//}
+//
+//inline void* pop_back(Node*list)
+//{
+//
+//    if(is_empty(list) ) // empty
+//    {
+//        return NULL;
+//    }
+//    else
+//    {
+//        void* value = NULL;
+//
+//        if(list->next == list)
+//        {
+//            value = list->value;
+//            list->value = NULL;
+//        }
+//        else
+//        {
+//            Node* last = list->pre;
+//            Node* pre  = last->pre;
+//            list->pre = pre;
+//            pre->next = list;
+//            value = last->value;
+//            free(last);
+//        }
+//
+//        list->size--;
+//        return value;
+//    }
+//}
 
 #endif /* COMMON_H_ */
